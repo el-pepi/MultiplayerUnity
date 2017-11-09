@@ -5,7 +5,7 @@ using UnityEngine.Networking;
 
 public class PlayerMovement : NetworkBehaviour {
 
-	Rigidbody rb;
+	CharacterController cc;
 
 	Vector3 dir = Vector3.zero;
 	float yDir;
@@ -27,13 +27,26 @@ public class PlayerMovement : NetworkBehaviour {
 	Transform camPivot;
 	Transform cam;
 
+	[SyncVar]
+	float damage;
+
+	Vector3 explosionForce;
+
+	NetworkStartPosition[] spawnPoints;
+
 	void Start () {
-		rb = GetComponent<Rigidbody> ();
+		cc = GetComponent<CharacterController>();
+
 		camPivot = transform.GetChild (0);
 		if (isLocalPlayer) {
 			Transform cam = Camera.main.transform;
 			cam.SetParent (camPivot);
 			cam.localPosition = new Vector3 (0.78f,1.62f,-4.97f);
+			gameObject.layer = LayerMask.NameToLayer("LocalPlayer");
+		}
+
+		if (isServer) {
+			spawnPoints = FindObjectsOfType<NetworkStartPosition> ();
 		}
 	}
 
@@ -43,7 +56,7 @@ public class PlayerMovement : NetworkBehaviour {
 			rotY += Input.GetAxis ("Mouse Y") * mouseSen;
 			rotY = Mathf.Clamp (rotY, -85f, 85f);
 
-			if (Input.GetButtonDown ("Jump")) {
+			if (cc.isGrounded && Input.GetButtonDown ("Jump")) {
 				yDir = jumpForce;
 			}
 		} else {
@@ -59,10 +72,25 @@ public class PlayerMovement : NetworkBehaviour {
 			dir = camPivot.TransformDirection (dir);
 			dir.y = 0;
 			dir = dir.normalized * runSpeed;
+
+
+			if ((explosionForce + dir * 2 * Time.deltaTime).magnitude < explosionForce.magnitude) {
+				explosionForce += dir * 2 * Time.deltaTime;
+			}
+
+
 			dir.y = yDir;
 
-			rb.velocity = dir;
-			yDir -= gravity * Time.deltaTime;
+			dir += explosionForce;
+
+			cc.Move (dir * Time.deltaTime);
+
+			if (!cc.isGrounded) {
+				yDir -= gravity * Time.deltaTime;
+			} else {
+				yDir = -1f;
+				explosionForce = Vector3.zero;
+			}
 		}
 
 	}
@@ -71,12 +99,40 @@ public class PlayerMovement : NetworkBehaviour {
 		if (isLocalPlayer) {
 			camPivot.rotation = Quaternion.AngleAxis (rotX, Vector3.up) * Quaternion.AngleAxis (rotY, Vector3.left);
 			CmdUpdateRot (rotX, rotY);
+
+
+			if (transform.position.y < -10f) {
+				CmdRespawn ();
+			}
 		}
+
+
+
+	}
+
+	[Command]
+	void CmdRespawn(){
+		transform.position = spawnPoints[Random.Range(0,spawnPoints.Length)].transform.position;
+		damage = 0;
 	}
 
 	[Command]
 	void CmdUpdateRot(float x, float y){
 		sRotX = x;
 		sRotY = y;
+	}
+
+	void OnTriggerEnter(Collider c){
+		if (isLocalPlayer == false) {
+			return;
+		}
+		if (c.tag == "Explosion") {
+			float tmpdamage = damage + 10f;
+
+			explosionForce = (transform.position - c.transform.position).normalized * tmpdamage;
+		}
+		if (isServer) {
+			damage += 10f;
+		}
 	}
 }
