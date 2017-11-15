@@ -17,11 +17,12 @@ public class Rocket : NetworkBehaviour {
 	}*/
 
 	void OnCollisionEnter(Collision col){
-		if (hasAuthority) {
+		if (hasAuthority && ex == false) {
 			if (col.transform.tag == "Player" && col.transform.GetComponent<PlayerMovement> ().isLocalPlayer) {
 				return;
 			}
 			CmdOnHit (col.contacts[0].point);
+			ex = true;
 		}
 	}
 	void OnCollisionStay(Collision col){
@@ -30,6 +31,16 @@ public class Rocket : NetworkBehaviour {
 				return;
 			}
 			CmdOnHit (col.contacts[0].point);
+			ex = true;
+		}
+	}
+
+	void OnTriggerEnter(Collider col){
+		if (hasAuthority && ex == false) {
+			if (col.transform.tag == "Player" && col.transform.GetComponent<PlayerMovement> ().isLocalPlayer) {
+				return;
+			}
+			CmdOnHit (transform.position);
 			ex = true;
 		}
 	}

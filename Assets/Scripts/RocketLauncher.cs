@@ -40,7 +40,7 @@ public class RocketLauncher : NetworkBehaviour {
 	void CmdShoot(Vector3 pos, Vector3 dir){
 		GameObject b = Instantiate (rocketPrefab,pos,Quaternion.LookRotation(dir));
 		b.GetComponent<Rigidbody>().velocity = cc.velocity  + b.transform.forward * 35f;
-		b.GetComponent<Rocket> ().player = this;
+//		b.GetComponent<Rocket> ().player = this;
 		NetworkServer.SpawnWithClientAuthority (b,gameObject);
 	}
 }

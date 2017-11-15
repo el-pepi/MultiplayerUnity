@@ -42,7 +42,7 @@ public class PlayerMovement : NetworkBehaviour {
 			Transform cam = Camera.main.transform;
 			cam.SetParent (camPivot);
 			cam.localPosition = new Vector3 (0.78f,1.62f,-4.97f);
-			gameObject.layer = LayerMask.NameToLayer("LocalPlayer");
+//			gameObject.layer = LayerMask.NameToLayer("LocalPlayer");
 		}
 
 		if (isServer) {
