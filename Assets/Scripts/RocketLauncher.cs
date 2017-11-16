@@ -12,10 +12,10 @@ public class RocketLauncher : NetworkBehaviour {
 
 	public Transform cam;
 
-	CharacterController cc;
+	//CharacterController cc;
 
 	void Start () {
-		cc = GetComponent<CharacterController> ();
+	//	cc = GetComponent<CharacterController> ();
 		if (isLocalPlayer == false) {
 			enabled = false;
 		}
@@ -39,8 +39,7 @@ public class RocketLauncher : NetworkBehaviour {
 	[Command]
 	void CmdShoot(Vector3 pos, Vector3 dir){
 		GameObject b = Instantiate (rocketPrefab,pos,Quaternion.LookRotation(dir));
-		b.GetComponent<Rigidbody>().velocity = cc.velocity  + b.transform.forward * 35f;
-//		b.GetComponent<Rocket> ().player = this;
-		NetworkServer.SpawnWithClientAuthority (b,gameObject);
+
+		NetworkServer.SpawnWithClientAuthority (b,connectionToClient);
 	}
 }

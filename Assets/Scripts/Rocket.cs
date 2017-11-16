@@ -9,12 +9,9 @@ public class Rocket : NetworkBehaviour {
 
 	bool ex = false;
 
-
-	/*void Start(){
-		if (player.isLocalPlayer) {
-			gameObject.layer = LayerMask.NameToLayer ("LocalRocket"); 
-		}
-	}*/
+	void Start(){
+		GetComponent<Rigidbody>().velocity = transform.forward * 35f;
+	}
 
 	void OnCollisionEnter(Collision col){
 		if (hasAuthority && ex == false) {

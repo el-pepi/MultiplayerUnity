@@ -27,12 +27,13 @@ public class PlayerMovement : NetworkBehaviour {
 	Transform camPivot;
 	Transform cam;
 
-	[SyncVar]
+	[SyncVar(hook = "OnDamageChange")]
 	float damage;
 
 	Vector3 explosionForce;
 
 	NetworkStartPosition[] spawnPoints;
+
 
 	void Start () {
 		cc = GetComponent<CharacterController>();
@@ -41,13 +42,13 @@ public class PlayerMovement : NetworkBehaviour {
 		if (isLocalPlayer) {
 			Transform cam = Camera.main.transform;
 			cam.SetParent (camPivot);
-			cam.localPosition = new Vector3 (0.78f,1.62f,-4.97f);
-//			gameObject.layer = LayerMask.NameToLayer("LocalPlayer");
+			cam.localPosition = new Vector3 (0.78f, 1.62f, -4.97f);
+
+			spawnPoints = FindObjectsOfType<NetworkStartPosition> ();
+		} else {
+			HealthDisplay.instance.CreateText (transform);
 		}
 
-		if (isServer) {
-			spawnPoints = FindObjectsOfType<NetworkStartPosition> ();
-		}
 	}
 
 	void Update(){
@@ -91,28 +92,26 @@ public class PlayerMovement : NetworkBehaviour {
 				yDir = -1f;
 				explosionForce = Vector3.zero;
 			}
-		}
 
+
+
+			if (transform.position.y < -10f) {
+				transform.position = spawnPoints[Random.Range(0,spawnPoints.Length)].transform.position;
+				CmdRespawn ();
+			}
+		}
 	}
 
 	void LateUpdate(){
 		if (isLocalPlayer) {
 			camPivot.rotation = Quaternion.AngleAxis (rotX, Vector3.up) * Quaternion.AngleAxis (rotY, Vector3.left);
 			CmdUpdateRot (rotX, rotY);
-
-
-			if (transform.position.y < -10f) {
-				CmdRespawn ();
-			}
 		}
-
-
-
 	}
 
 	[Command]
 	void CmdRespawn(){
-		transform.position = spawnPoints[Random.Range(0,spawnPoints.Length)].transform.position;
+		//transform.position = spawnPoints[Random.Range(0,spawnPoints.Length)].transform.position;
 		damage = 0;
 	}
 
@@ -123,16 +122,26 @@ public class PlayerMovement : NetworkBehaviour {
 	}
 
 	void OnTriggerEnter(Collider c){
-		if (isLocalPlayer == false) {
-			return;
-		}
-		if (c.tag == "Explosion") {
+		if (isLocalPlayer && c.tag == "Explosion") {
 			float tmpdamage = damage + 10f;
 
 			explosionForce = (transform.position - c.transform.position).normalized * tmpdamage;
+
+			CmdAddDamage (10f);
 		}
-		if (isServer) {
-			damage += 10f;
+	}
+
+	[Command]
+	void CmdAddDamage(float amount){
+		damage += amount;
+	}
+
+	void OnDamageChange(float damage){
+		if (isLocalPlayer) {
+			HealthDisplay.instance.PlayerDamageUpdate (damage);
+		} else {
+			HealthDisplay.instance.UpdateRemoteDamage (transform,damage);
 		}
+		this.damage = damage;
 	}
 }
