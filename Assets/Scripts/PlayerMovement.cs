@@ -129,11 +129,26 @@ public class PlayerMovement : NetworkBehaviour {
 
 			CmdAddDamage (10f);
 		}
+        if(isLocalPlayer && c.tag == "Health")
+        {
+            CmdDestroy(c.gameObject);
+            CmdAddDamage(-10f);
+        }
 	}
+
+    [Command]
+    void CmdDestroy(GameObject g)
+    {
+        NetworkServer.Destroy(g);
+    }
 
 	[Command]
 	void CmdAddDamage(float amount){
 		damage += amount;
+        if (damage < 0)
+        {
+            damage = 0;
+        }
 	}
 
 	void OnDamageChange(float damage){
