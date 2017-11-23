@@ -34,17 +34,35 @@ public class PlayerMovement : NetworkBehaviour {
 
 	NetworkStartPosition[] spawnPoints;
 
+	ParticleSystem smoke;
+
+	[SyncVar(hook = "OnSmokeToggle")]
+	bool smokeEnabled = false;
+
+	GameObject enterToRespawn;
+	public bool dead = false;
+
+	GameObject deathCam;
 
 	void Start () {
 		cc = GetComponent<CharacterController>();
 
 		camPivot = transform.GetChild (0);
+
+		smoke = GetComponentInChildren<ParticleSystem> ();
+
 		if (isLocalPlayer) {
 			Transform cam = Camera.main.transform;
 			cam.SetParent (camPivot);
-			cam.localPosition = new Vector3 (0.78f, 1.62f, -4.97f);
+			cam.localPosition = Vector3.zero;//new Vector3 (0.78f, 1.62f, -4.97f);
 
 			spawnPoints = FindObjectsOfType<NetworkStartPosition> ();
+
+			enterToRespawn = GameObject.Find ("EnterToRespawn");
+			enterToRespawn.SetActive (false);
+
+			deathCam = GameObject.Find ("DeathCam");
+			deathCam.SetActive (false);
 		} else {
 			HealthDisplay.instance.CreateText (transform);
 		}
@@ -52,6 +70,19 @@ public class PlayerMovement : NetworkBehaviour {
 	}
 
 	void Update(){
+		if (dead) {
+			if (Input.GetKeyDown (KeyCode.Return)) {
+				transform.position = spawnPoints[Random.Range(0,spawnPoints.Length)].transform.position;
+				enterToRespawn.SetActive (false);
+				dead = false;
+				rotX = 0;
+				rotY = 0;
+				deathCam.SetActive (false);
+
+				CmdRespawn ();
+			}
+			return;
+		}
 		if (isLocalPlayer) {
 			rotX += Input.GetAxis ("Mouse X") * mouseSen;
 			rotY += Input.GetAxis ("Mouse Y") * mouseSen;
@@ -66,6 +97,9 @@ public class PlayerMovement : NetworkBehaviour {
 	}
 
 	void FixedUpdate () {
+		if (dead) {
+			return;
+		}
 		if (isLocalPlayer) {
 			camPivot.rotation = Quaternion.AngleAxis (rotX, Vector3.up);
 
@@ -75,8 +109,8 @@ public class PlayerMovement : NetworkBehaviour {
 			dir = dir.normalized * runSpeed;
 
 
-			if ((explosionForce + dir * 2 * Time.deltaTime).magnitude < explosionForce.magnitude) {
-				explosionForce += dir * 2 * Time.deltaTime;
+			if ((explosionForce + dir * 1.2f * Time.deltaTime).magnitude < explosionForce.magnitude) {
+				explosionForce += dir * 1.2f * Time.deltaTime;
 			}
 
 
@@ -91,18 +125,26 @@ public class PlayerMovement : NetworkBehaviour {
 			} else {
 				yDir = -1f;
 				explosionForce = Vector3.zero;
+				if (smokeEnabled) {
+					CmdSetSmoke (false);
+				}
 			}
 
 
 
-			if (transform.position.y < -10f) {
-				transform.position = spawnPoints[Random.Range(0,spawnPoints.Length)].transform.position;
-				CmdRespawn ();
+			if (transform.position.y < -20f) {
+				dead = true;
+				enterToRespawn.SetActive (true);
+
+				deathCam.SetActive (true);
 			}
 		}
 	}
 
 	void LateUpdate(){
+		if (dead) {
+			return;
+		}
 		if (isLocalPlayer) {
 			camPivot.rotation = Quaternion.AngleAxis (rotX, Vector3.up) * Quaternion.AngleAxis (rotY, Vector3.left);
 			CmdUpdateRot (rotX, rotY);
@@ -113,6 +155,7 @@ public class PlayerMovement : NetworkBehaviour {
 	void CmdRespawn(){
 		//transform.position = spawnPoints[Random.Range(0,spawnPoints.Length)].transform.position;
 		damage = 0;
+		smokeEnabled = false;
 	}
 
 	[Command]
@@ -126,7 +169,8 @@ public class PlayerMovement : NetworkBehaviour {
 			float tmpdamage = damage + 10f;
 
 			explosionForce = (transform.position - c.transform.position).normalized * tmpdamage;
-
+			explosionForce.x *= 1.2f;
+ 			CmdSetSmoke (true);
 			CmdAddDamage (10f);
 		}
         if(isLocalPlayer && c.tag == "Health")
@@ -158,5 +202,15 @@ public class PlayerMovement : NetworkBehaviour {
 			HealthDisplay.instance.UpdateRemoteDamage (transform,damage);
 		}
 		this.damage = damage;
+	}
+
+	[Command]
+	void CmdSetSmoke(bool value){
+		smokeEnabled = value;
+	}
+
+	void OnSmokeToggle(bool smokeEnabled){
+		this.smokeEnabled = smokeEnabled;
+		smoke.enableEmission = smokeEnabled;
 	}
 }

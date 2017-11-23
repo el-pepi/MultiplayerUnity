@@ -10,7 +10,7 @@ public class Rocket : NetworkBehaviour {
 	bool ex = false;
 
 	void Start(){
-		GetComponent<Rigidbody>().velocity = transform.forward * 35f;
+		GetComponent<Rigidbody>().velocity = transform.forward * 40f;
 	}
 
 	void OnCollisionEnter(Collision col){

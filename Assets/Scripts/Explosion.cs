@@ -5,16 +5,18 @@ using UnityEngine.Networking;
 
 public class Explosion : NetworkBehaviour {
 
-	float timer = 0.2f;
+
 
 	void Start () {
-		enabled = isServer;		
+		StartCoroutine (DestroyAndStuff());
 	}
-	
-	// Update is called once per frame
-	void Update () {
-		timer -= Time.deltaTime;
-		if (timer <= 0) {
+
+	IEnumerator DestroyAndStuff(){
+		yield return new WaitForSeconds (0.2f);
+		GetComponent<Collider> ().enabled = false;
+		if (isServer) {
+			yield return new WaitForSeconds (0.7f);
+
 			NetworkServer.Destroy (gameObject);
 		}
 	}

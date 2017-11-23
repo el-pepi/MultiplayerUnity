@@ -14,14 +14,22 @@ public class RocketLauncher : NetworkBehaviour {
 
 	//CharacterController cc;
 
+	PlayerMovement pm;
+
 	void Start () {
 	//	cc = GetComponent<CharacterController> ();
 		if (isLocalPlayer == false) {
 			enabled = false;
+		} else {
+			pm = GetComponent<PlayerMovement> ();
 		}
 	}
 
 	void LateUpdate () {
+		if (pm.dead) {
+			return;
+		}
+
 		if (actualCoolDown > 0f) {
 			actualCoolDown -= Time.deltaTime;
 		} else {
